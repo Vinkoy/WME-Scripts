@@ -66,7 +66,7 @@ function getSpeedcamLV(){
     SCLV_Layer.destroyFeatures();
 
     var Bounds = getBounds();
-    var url = "https://doc-04-bk-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/rhtesqn14aamlkna28qsrgioav0olh4a/1490781600000/17237469506293975786/*/0B1XlW_0U5WBNSWF1cUIwZ0RLZ1U?e=download";
+    var url = "https://github.com/Vinkoy/WME-Scripts/blob/master/WME%20SpeedCam/lv";
     var data = {
       format: "JSON",
       types: "pin",

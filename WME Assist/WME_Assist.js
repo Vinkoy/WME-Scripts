@@ -8,8 +8,8 @@
 // @match     https://world.waze.com/map-editor/*
 // @match     https://world.waze.com/beta_editor/*
 // @match     https://www.waze.com/map-editor/*
-// @require   https://raw.githubusercontent.com/Vinkoy/WME-Scripts/master/WME%20Assist/WME_Assist_Analyzer.js
-// @require   https://raw.githubusercontent.com/Vinkoy/WME-Scripts/master/WME%20Assist/WME_Assist_Scanner.js
+// @require   https://github.com/Vinkoy/WME-Scripts/raw/master/WME%20Assist/WME_Assist_Analyzer.js
+// @require   https://github.com/Vinkoy/WME-Scripts/raw/master/WME%20Assist/WME_Assist_Scanner.js
 // @grant     none
 // @include   https://editor-beta.waze.com/*
 // @include   https://*.waze.com/editor/editor/*

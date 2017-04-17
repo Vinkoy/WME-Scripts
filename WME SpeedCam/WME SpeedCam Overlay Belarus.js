@@ -66,7 +66,7 @@ function getSpeedCamBY(){
     SpeedCamBY_Layer.destroyFeatures();
 
     var Bounds = getBounds();
-    var url = "https://raw.githubusercontent.com/Vinkoy/WME-Scripts/master/WME%20SpeedCam/sc";
+    var url = "https://github.com/Vinkoy/WME-Scripts/raw/master/WME%20SpeedCam/sc";
     var data = {
       format: "JSON",
       types: "speedcam",
