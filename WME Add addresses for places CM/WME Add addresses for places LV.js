@@ -1,13 +1,10 @@
 // ==UserScript==
 // @name         WME Add addresses for places Latvia
-// @version      0.0.9
+// @version      0.0.10
 // @description  Добавление адресов по ХН
 // @author       ixxvivxxi, Vinkoy
-// @include      https://www.waze.com/editor*
-// @include      https://www.waze.com/*/editor*
-// @include      https://editor-beta.waze.com/editor*
-// @include      https://editor-beta.waze.com/*/editor*
-// @include      https://beta.waze.com/*/editor*
+// @include      https://*waze.com/*editor*
+// @exclude      https://*waze.com/*user/editor*
 // @grant        none
 // @namespace    https://greasyfork.org/ru/scripts/12229-wme-add-alt-address-for-housing
 // ==/UserScript==
@@ -279,7 +276,7 @@ function startAltAddress()
                 address = Waze.selectionManager.selectedItems[0].model.getAddress();
                 var title = "Update addresses";
 
-                if(address.country.id == 37 || address.country.id == 186)
+                if(address.country.id == 37 || address.country.id == 186 || 1)
                 {
                     title = "Обновить адреса";
                 }
@@ -331,9 +328,29 @@ function startAltAddress()
             }
         }
 
-        if(isRH && (hasChar(poiobject.houseNumber) || poiobject.houseNumber.indexOf("/") != -1))
+        if(!isRH && poiobject.houseNumber.indexOf("-") != -1)
         {
-            if(WME_ADR_debug) console.log("WME-ADR: createPOI(): RH has char or '/' EXIT ("+poiobject.houseNumber+")");
+            if(WME_ADR_debug) console.log("WME-ADR: createPOI(): Has '-' ("+poiobject.houseNumber+")");
+
+            var num = poiobject.houseNumber.split('/');
+            if (num[1]-num[0]>=1 && num[1]-num[0]<=5)
+            {
+                // двойной адрес
+                poi.attributes.name = poiobject.streetName + " " + poiobject.houseNumber.toUpperCase();
+                if(WME_ADR_debug) console.log("WME-ADR: createPOI(): double address ("+poi.attributes.name.toUpperCase()+")");
+            }
+            else
+            {
+                // корпус
+                poi.attributes.name = poiobject.streetName + " " + poiobject.houseNumber.replace('-', ' k-');
+                poi.attributes.aliases.push(poiobject.streetName + " " + poiobject.houseNumber);
+                if(WME_ADR_debug) console.log("WME-ADR: createPOI(): building ("+poi.attributes.name.toUpperCase()+"), alias ("+poiobject.streetName + " " + poiobject.houseNumber+")");
+            }
+        }
+
+        if(isRH && (hasChar(poiobject.houseNumber) || poiobject.houseNumber.indexOf("/") != -1 || poiobject.houseNumber.indexOf("-") != -1))
+        {
+            if(WME_ADR_debug) console.log("WME-ADR: createPOI(): RH has char or '/' or '-' EXIT ("+poiobject.houseNumber+")");
             return;
         }
 
@@ -422,9 +439,10 @@ function startAltAddress()
                                 && address.street.name == venueAddress.street.name
                                 && (venueAddress.houseNumber !== null && number.toLowerCase() == venueAddress.houseNumber.toLowerCase())
                                 && (venue.isResidential()
-                                    || (!venue.isResidential() && 
+                                    || (!venue.isResidential() &&
                                         ( (number.indexOf("/") === -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number).toLowerCase())
-                                        || (number.indexOf("/") != -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number.replace('/', ' k-')).toLowerCase()) )
+                                        || (number.indexOf("/") != -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number.replace('/', ' k-')).toLowerCase())
+                                        || (number.indexOf("-") != -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number.replace('-', ' k-')).toLowerCase()) )
                                         )
                                     )
                                 )
@@ -485,9 +503,10 @@ function startAltAddress()
                                 }
                             }
 
-                            if ((!venue.isResidential() && 
+                            if ((!venue.isResidential() &&
                                     ( (number.indexOf("/") === -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number).toLowerCase())
-                                    || (number.indexOf("/") != -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number.replace('/', ' k-')).toLowerCase()) )
+                                    || (number.indexOf("/") != -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number.replace('/', ' k-')).toLowerCase())
+                                    || (number.indexOf("-") != -1 && venue.attributes.name.toLowerCase() == (address.street.name + " " + number.replace('-', ' k-')).toLowerCase()) )
                                 )
                                 && ( (venueAddress.houseNumber == null || venueAddress.houseNumber == "")
                                     || (venueAddress.street.name == null || venueAddress.street.name == ""))
@@ -559,7 +578,7 @@ function startAltAddress()
         {
             var haveChanges = false;
             hasPOI = true;
-            
+
             // дополняем город, улицу
             if((venue.getAddress().attributes.street.name != streetName && streetName.indexOf(" ") == -1) || address.city.attributes.name.indexOf(cityName) != -1)
             {
@@ -585,18 +604,33 @@ function startAltAddress()
                 newAtts.houseNumber = number;
                 haveChanges = true;
             }
-            
+
             // дополняем имя
             if(number.indexOf("/") != -1 && (venue.attributes.name.toLowerCase() !== (streetName + " " + number.replace('/', ' k-'))))
             {
                 if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): has '/' ("+number+")");
-                
+
                 var num = number.split('/');
-                
+
                 if (num[1]-num[0]<1 || num[1]-num[0]>5)
                 {
                     // корпус
                     newAtts.name = streetName + " " + number.replace('/', ' k-');
+                    if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): Name '"+venue.attributes.name+"' -> '"+newAtts.name+"'");
+                    haveChanges = true;
+                }
+            }
+
+            if(number.indexOf("-") != -1 && (venue.attributes.name.toLowerCase() !== (streetName + " " + number.replace('-', ' k-'))))
+            {
+                if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): has '-' ("+number+")");
+
+                var num = number.split('-');
+
+                if (num[1]-num[0]<1 || num[1]-num[0]>5)
+                {
+                    // корпус
+                    newAtts.name = streetName + " " + number.replace('-', ' k-');
                     if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): Name '"+venue.attributes.name+"' -> '"+newAtts.name+"'");
                     haveChanges = true;
                 }
@@ -611,7 +645,7 @@ function startAltAddress()
 
                 var length = venue.attributes.aliases.length;
                 var street = streetName + " " + number.toUpperCase();
-            
+
                 var hasAliasAddress = false;
                 for(var ia = 0; ia < length; ia++)
                 {
