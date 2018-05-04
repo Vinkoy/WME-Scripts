@@ -1,13 +1,10 @@
 // ==UserScript==
 // @name         WME Add addresses for places CM
-// @version      0.25.17
+// @version      0.25.20
 // @description  Добавление альтернативных названий (адресов)
 // @author       ixxvivxxi, Vinkoy
-// @include      https://www.waze.com/editor*
-// @include      https://www.waze.com/*/editor*
-// @include      https://editor-beta.waze.com/editor*
-// @include      https://editor-beta.waze.com/*/editor*
-// @include      https://beta.waze.com/*/editor*
+// @include      https://*waze.com/*editor*
+// @exclude      https://*waze.com/*user/editor*
 // @grant        none
 // @namespace    http://cities.ster.by/WMEAddAddressesForPlaces.js
 // ==/UserScript==
@@ -64,7 +61,7 @@ function startAltAddress()
     var ncaPolygon = new OpenLayers.Geometry();
     var ncaJSON;
 
-    Waze.selectionManager.events.register("selectionchanged", null, showTitle);
+    W.selectionManager.events.register("selectionchanged", null, showTitle);
 
     $('#sidebar').on('click', '#addPOIs', function(event) {
         event.preventDefault();
@@ -74,17 +71,17 @@ function startAltAddress()
         event.preventDefault();
         ncaJSON = $.parseJSON($('#sidebar').find('#ncajson').val());
 
-        ncaPolygon = Waze.selectionManager.selectedItems[0].geometry;
-        Waze.model.actionManager.undo();
-        Waze.model.actionManager.undo();
+        ncaPolygon = W.selectionManager.getSelectedFeatures()[0].geometry;
+        W.model.actionManager.undo();
+        W.model.actionManager.undo();
         getPOIs();
         setAddressFromJSON(ncaJSON, "КС");
         setAddressFromJSON(ncaJSON, "ЗУ");
     });
 
-    Waze.model.events.register('mergeend', null, getPOIs);
-    Waze.model.events.register('zoomend', null, getPOIs);
-    Waze.model.events.register('moveend', null, getPOIs);
+    W.model.events.register('mergeend', null, getPOIs);
+    W.model.events.register('zoomend', null, getPOIs);
+    W.model.events.register('moveend', null, getPOIs);
 
     var wazeActionAddLandmark = require("Waze/Action/AddLandmark");
     var wazeActionUpdateObject = require("Waze/Action/UpdateObject");
@@ -228,9 +225,9 @@ function startAltAddress()
     function getPOIs()
     {
         POIs = [];
-        for(var idVenue in Waze.model.venues.objects)
+        for(var idVenue in W.model.venues.objects)
         {
-            var venue = Waze.model.venues.objects[idVenue];
+            var venue = W.model.venues.objects[idVenue];
             var venueAddressDetails = venue.getAddress();
 
             if(selectStreetName === null || venueAddressDetails === null || venueAddressDetails.
@@ -238,9 +235,9 @@ function startAltAddress()
 
             if(venueAddressDetails.attributes.street.name == selectStreetName && selectStreetName !== "")
             {
-                $("g[id^='Waze.Layer.FeatureLayer']").find("svg[id='" + venue.geometry.id + "']").attr('stroke', 'yellow');
-                $("g[id^='Waze.Layer.FeatureLayer']").find("circle[id='" + venue.geometry.id + "']").attr('stroke', 'yellow');
-                $("g[id^='Waze.Layer.FeatureLayer']").find("path[id='" + venue.geometry.id + "']").attr('stroke', 'yellow');
+                $("g[id^='W.Layer.FeatureLayer']").find("svg[id='" + venue.geometry.id + "']").attr('stroke', 'yellow');
+                $("g[id^='W.Layer.FeatureLayer']").find("circle[id='" + venue.geometry.id + "']").attr('stroke', 'yellow');
+                $("g[id^='W.Layer.FeatureLayer']").find("path[id='" + venue.geometry.id + "']").attr('stroke', 'yellow');
             }
 
             var inPois = false;
@@ -272,9 +269,9 @@ function startAltAddress()
     function addClass()
     {
         if(POIs.length === 0) getPOIs();
-        $("g[id^='Waze.Layer.FeatureLayer']").find("svg[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
-        $("g[id^='Waze.Layer.FeatureLayer']").find("circle[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
-        $("g[id^='Waze.Layer.FeatureLayer']").find("path[id^='OpenLayers.Geometry.Polygon']").attr('stroke', '#ca9ace');
+        $("g[id^='W.Layer.FeatureLayer']").find("svg[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
+        $("g[id^='W.Layer.FeatureLayer']").find("circle[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
+        $("g[id^='W.Layer.FeatureLayer']").find("path[id^='OpenLayers.Geometry.Polygon']").attr('stroke', '#ca9ace');
 
         for(var ir = 0; ir < POIs.length; ir++)
         {
@@ -284,43 +281,43 @@ function startAltAddress()
             if(venueAddressDetails.attributes.street.name == selectStreetName)
             {
                 if(WME_ADR_debug) console.log("WME-ADR: add class");
-                $("g[id^='Waze.Layer.FeatureLayer']").find("svg[id='" + POIs[ir].geometry.id + "']").attr('stroke', 'yellow');
-                $("g[id^='Waze.Layer.FeatureLayer']").find("circle[id='" + POIs[ir].geometry.id + "']").attr('stroke', 'yellow');
-                $("g[id^='Waze.Layer.FeatureLayer']").find("path[id='" + POIs[ir].geometry.id + "']").attr('stroke', 'yellow');
+                $("g[id^='W.Layer.FeatureLayer']").find("svg[id='" + POIs[ir].geometry.id + "']").attr('stroke', 'yellow');
+                $("g[id^='W.Layer.FeatureLayer']").find("circle[id='" + POIs[ir].geometry.id + "']").attr('stroke', 'yellow');
+                $("g[id^='W.Layer.FeatureLayer']").find("path[id='" + POIs[ir].geometry.id + "']").attr('stroke', 'yellow');
             }
         }
     }
 
     function showTitle()
     {
-        if(Waze.selectionManager.selectedItems.length === 1 && Waze.selectionManager.selectedItems[0].model.type == "segment")
+        if(W.selectionManager.getSelectedFeatures().length === 1 && W.selectionManager.getSelectedFeatures()[0].model.type == "segment")
         {
-            if(Waze.selectionManager.selectedItems[0].model.attributes.id.toString().indexOf("-") == -1)
+            if(W.selectionManager.getSelectedFeatures()[0].model.attributes.id.toString().indexOf("-") == -1)
             {
-                address = Waze.selectionManager.selectedItems[0].model.getAddress();
+                address = W.selectionManager.getSelectedFeatures()[0].model.getAddress();
                 var title = "Update addresses";
 
-                if(address.country.id == 37 || address.country.id == 186)
+                if(address.attributes.country.id == 37 || address.attributes.country.id == 186)
                 {
                     title = "Обновить адреса";
                 }
-                selectStreetName = address.street.name;
+                selectStreetName = address.attributes.street.name;
                 if(selectStreetName !== null)
                     $('.more-actions').append('<button id="addPOIs" class="action-button btn btn-default">' + title + '</button>');
                 addClass();
             }
 
         }
-        else if(Waze.selectionManager.selectedItems.length === 1 &&Waze.selectionManager.selectedItems[0].model.type == "venue")
+        else if(W.selectionManager.getSelectedFeatures().length === 1 &&W.selectionManager.getSelectedFeatures()[0].model.type == "venue")
         {
-            address = Waze.selectionManager.selectedItems[0].model.getAddress().attributes;
+            address = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes;
             getAddressKadastr();
             
             if (address.houseNumber !== null && address.street !== null)
             {
-                var number = Waze.selectionManager.selectedItems[0].model.getAddress().attributes.houseNumber;
-                var streetName = Waze.selectionManager.selectedItems[0].model.getAddress().attributes.street.name;
-                var venue = Waze.selectionManager.selectedItems[0].model;
+                var number = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes.houseNumber;
+                var streetName = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes.street.name;
+                var venue = W.selectionManager.getSelectedFeatures()[0].model;
 
                 if(number !== null && (number.indexOf("/") !== -1 || hasChar(number)))
                 {
@@ -335,18 +332,18 @@ function startAltAddress()
         else
         {
             if(WME_ADR_debug) console.log("WME-ADR: showTitle(): segment isn't selected");
-            $("g[id^='Waze.Layer.FeatureLayer']").find("svg[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
-            $("g[id^='Waze.Layer.FeatureLayer']").find("circle[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
-            $("g[id^='Waze.Layer.FeatureLayer']").find("path[id^='OpenLayers.Geometry.Polygon']").attr('stroke', '#ca9ace');
+            $("g[id^='W.Layer.FeatureLayer']").find("svg[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
+            $("g[id^='W.Layer.FeatureLayer']").find("circle[id^='OpenLayers.Geometry.Point']").attr('stroke', 'white');
+            $("g[id^='W.Layer.FeatureLayer']").find("path[id^='OpenLayers.Geometry.Polygon']").attr('stroke', '#ca9ace');
             return;
         }
     }
     
     function addAliases()
     {
-        var number = Waze.selectionManager.selectedItems[0].model.getAddress().attributes.houseNumber;
-        var streetName = Waze.selectionManager.selectedItems[0].model.getAddress().attributes.street.name;
-        var venue = Waze.selectionManager.selectedItems[0].model;
+        var number = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes.houseNumber;
+        var streetName = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes.street.name;
+        var venue = W.selectionManager.getSelectedFeatures()[0].model;
 
         if(number !== null && (number.indexOf("/") !== -1 || hasChar(number)))
         {
@@ -405,7 +402,7 @@ function startAltAddress()
             {
                 $('.aliases-view .add').click();
                 $('.aliases-view .delete').click();
-                Waze.model.actionManager.add(new wazeActionUpdateObject(venue, {aliases : aliases}));
+                W.model.actionManager.add(new wazeActionUpdateObject(venue, {aliases : aliases}));
             }
         }
     }
@@ -443,7 +440,7 @@ function startAltAddress()
             return;
         }
 
-        Waze.model.actionManager.add(new wazeActionAddLandmark(poi));
+        W.model.actionManager.add(new wazeActionAddLandmark(poi));
         var poiAddress = poi.getAddress().attributes;
 
         if(poiAddress.city === null)
@@ -460,9 +457,9 @@ function startAltAddress()
             stateID: poiAddress.state.id,
             countryID: poiAddress.country.id
         };
-        Waze.model.actionManager.add(new wazeActionUpdateFeatureAddress(poi, newAddressAtts,{streetIDField: 'streetID'}));
+        W.model.actionManager.add(new wazeActionUpdateFeatureAddress(poi, newAddressAtts,{streetIDField: 'streetID'}));
 
-        Waze.model.actionManager.add(new wazeActionUpdateObject(poi,{houseNumber: poiobject.houseNumber.toUpperCase(),residential: isRH}));
+        W.model.actionManager.add(new wazeActionUpdateObject(poi,{houseNumber: poiobject.houseNumber.toUpperCase(),residential: isRH}));
         POIs.push(poi);
         if(WME_ADR_debug) console.log("WME-ADR: createPOI(): added to POI list ("+poiobject.streetName+", "+poiobject.houseNumber.toUpperCase()+")", poi);
     }
@@ -475,40 +472,40 @@ function startAltAddress()
 
         setTimeout(function()
         {
-            $('#map-lightbox .cancel').click();
+            $('.waze-icon-exit').click();
 
-            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN", Waze.model.houseNumbers.objects);
-            for(var key in Waze.model.houseNumbers.objects)
+            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN", W.model.houseNumbers.objects);
+            for(var key in W.model.houseNumbers.objects)
             {
                 //if (key != address.street.id) {continue;}
-                if(Waze.model.houseNumbers.objects[key].numbers.length > 0)
+                if(W.model.houseNumbers.objects[key].numbers.length > 0)
                 {
-                    if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN count("+Waze.model.houseNumbers.objects[key].numbers.length+")");
-                    for(var i = 0; i < Waze.model.houseNumbers.objects[key].numbers.length; i++)
+                    if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN count("+W.model.houseNumbers.objects[key].numbers.length+")");
+                    for(var i = 0; i < W.model.houseNumbers.objects[key].numbers.length; i++)
                     {
-                        //console.log(Waze.model.houseNumbers.objects[key].getSegment());
-                        if(Waze.model.houseNumbers.objects[key].getSegment() === undefined)
+                        //console.log(W.model.houseNumbers.objects[key].getSegment());
+                        if(W.model.houseNumbers.objects[key].getSegment() === undefined)
                         {
                             if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): undefined segment");
                             continue;
                         }
-                        if(Waze.model.houseNumbers.objects[key].getSegment().getAddress().street === null)
+                        if(W.model.houseNumbers.objects[key].getSegment().getAddress().street === null)
                         {
-                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): null street", Waze.model.houseNumbers.objects[key].getSegment().getAddress());
+                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): null street", W.model.houseNumbers.objects[key].getSegment().getAddress());
                             continue;
                         }
-                        if(Waze.model.houseNumbers.objects[key].getSegment().getAddress().street.name != address.street.name)
+                        if(W.model.houseNumbers.objects[key].getSegment().getAddress().attributes.street.name != address.attributes.street.name)
                         {
-                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): other streetName ("+address.street.name+")", Waze.model.houseNumbers.objects[key].getSegment().getAddress().street.name);
+                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): other streetName ("+address.attributes.street.name+")", W.model.houseNumbers.objects[key].getSegment().getAddress().attributes.street.name);
                             continue;
                         }
-                        if(!Waze.map.getExtent().intersectsBounds(Waze.model.houseNumbers.objects[key].numbers[i].geometry.getBounds()))
+                        if(!W.map.getExtent().intersectsBounds(W.model.houseNumbers.objects[key].numbers[i].geometry.getBounds()))
                         {
-                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): out of screen", Waze.model.houseNumbers.objects[key].numbers[i].number);
+                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): out of screen", W.model.houseNumbers.objects[key].numbers[i].number);
                             continue;
                         }
 
-                        var number = Waze.model.houseNumbers.objects[key].numbers[i].number;
+                        var number = W.model.houseNumbers.objects[key].numbers[i].number;
                         var hasPOI = false;
                         var hasRH = false;
 
@@ -522,10 +519,10 @@ function startAltAddress()
                                 continue;
                             }
 
-                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): NH:  "+address.city.attributes.name+", "+address.street.name+", "+number,address);
+                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): NH:  "+address.attributes.city.attributes.name+", "+address.attributes.street.name+", "+number,address);
                             if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): POI: "+venueAddress.city.attributes.name+", "+venueAddress.street.name+", "+venueAddress.houseNumber+", RH="+venue.isResidential(),venueAddress);
-                            if(address.city.attributes.name.indexOf(venueAddress.city.attributes.name) != -1
-                                && address.street.name == venueAddress.street.name
+                            if(address.attributes.city.attributes.name.indexOf(venueAddress.city.attributes.name) != -1
+                                && address.attributes.street.name == venueAddress.street.name
                                 && (venueAddress.houseNumber !== null && number.toLowerCase() == venueAddress.houseNumber.toLowerCase())
                                 && (venue.isResidential()
                                     || (!venue.isResidential() && venue.attributes.name.toLowerCase() == number.toLowerCase()))
@@ -537,7 +534,7 @@ function startAltAddress()
                                 {
                                     var newLock = {};
                                     newLock.lockRank = document.getElementById('_lockLevel').selectedIndex;
-                                    Waze.model.actionManager.add(new wazeActionUpdateObject(venue, newLock));
+                                    W.model.actionManager.add(new wazeActionUpdateObject(venue, newLock));
                                     if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): update lock "+venue.attributes.lockRank+" -> "+newLock.lockRank);
                                 }
 
@@ -553,29 +550,29 @@ function startAltAddress()
                                     if(venue.isResidential())
                                     {
                                         var oldCoord = venue.geometry.clone();
-                                        var newCoord = Waze.model.houseNumbers.objects[key].numbers[i].geometry.clone();
+                                        var newCoord = W.model.houseNumbers.objects[key].numbers[i].geometry.clone();
                                         if ((oldCoord.x.toFixed(1) !== (newCoord.x+1).toFixed(1)) || (oldCoord.y.toFixed(1) !== newCoord.y.toFixed(1)))
                                         {
                                             newCoord.x++;
                                             if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): move residential", oldCoord, newCoord);
 
                                             var wazeActionUpdateFeatureGeometry = require("Waze/Action/UpdateFeatureGeometry");
-                                            var action = new wazeActionUpdateFeatureGeometry(venue, Waze.model.venues, oldCoord, newCoord);
-                                            Waze.model.actionManager.add(action);
+                                            var action = new wazeActionUpdateFeatureGeometry(venue, W.model.venues, oldCoord, newCoord);
+                                            W.model.actionManager.add(action);
                                         }
                                     }
                                     else
                                     {
                                         var oldCoord = venue.geometry.clone();
-                                        var newCoord = Waze.model.houseNumbers.objects[key].numbers[i].geometry.clone();
+                                        var newCoord = W.model.houseNumbers.objects[key].numbers[i].geometry.clone();
                                         if ((oldCoord.x.toFixed(1) !== (newCoord.x-1).toFixed(1)) || (oldCoord.y.toFixed(1) !== newCoord.y.toFixed(1)))
                                         {
                                             newCoord.x--;
                                             if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): move poi", oldCoord, newCoord);
 
                                             var wazeActionUpdateFeatureGeometry = require("Waze/Action/UpdateFeatureGeometry");
-                                            var action = new wazeActionUpdateFeatureGeometry(venue, Waze.model.venues, oldCoord, newCoord);
-                                            Waze.model.actionManager.add(action);
+                                            var action = new wazeActionUpdateFeatureGeometry(venue, W.model.venues, oldCoord, newCoord);
+                                            W.model.actionManager.add(action);
                                         }
                                     }
                                 }
@@ -589,16 +586,16 @@ function startAltAddress()
 
                             if(!venue.isPoint() && document.getElementById('_updatePlaces').checked)
                             {
-                                if(venue.geometry.intersects(Waze.model.houseNumbers.objects[key].numbers[i].geometry))
+                                if(venue.geometry.intersects(W.model.houseNumbers.objects[key].numbers[i].geometry))
                                 {
-                                    if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN ("+number+") in POI area", Waze.model.houseNumbers.objects[key].numbers[i].geometry, venue.geometry);
-                                    var state = updateLandmark(venue, address.city.attributes.name, address.street.name, number);
+                                    if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN ("+number+") in POI area", W.model.houseNumbers.objects[key].numbers[i].geometry, venue.geometry);
+                                    var state = updateLandmark(venue, address.attributes.city.attributes.name, address.attributes.street.name, number);
                                     hasPOI = (hasPOI) ? hasPOI : state[0];
                                     hasRH = (hasRH) ? hasRH : state[1];
                                 }
                                 else
                                 {
-                                    if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN NOT in POI area", Waze.model.houseNumbers.objects[key].numbers[i].geometry, venue.geometry);
+                                    if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN NOT in POI area", W.model.houseNumbers.objects[key].numbers[i].geometry, venue.geometry);
                                 }
                             }
                         }
@@ -608,22 +605,22 @@ function startAltAddress()
                         {
                             createPOI(
                                 {
-                                    x: Waze.model.houseNumbers.objects[key].numbers[i].geometry.x,
-                                    y: Waze.model.houseNumbers.objects[key].numbers[i].geometry.y,
-                                    streetName: address.street.name,
+                                    x: W.model.houseNumbers.objects[key].numbers[i].geometry.x,
+                                    y: W.model.houseNumbers.objects[key].numbers[i].geometry.y,
+                                    streetName: address.attributes.street.name,
                                     houseNumber: number,
-                                    cityName: address.city.attributes.name
+                                    cityName: address.attributes.city.attributes.name
                                 }, false);
                         }
                         if(!hasRH && document.getElementById('_createRH').checked)
                         {
                             createPOI(
                                 {
-                                    x: Waze.model.houseNumbers.objects[key].numbers[i].geometry.x,
-                                    y: Waze.model.houseNumbers.objects[key].numbers[i].geometry.y,
-                                    streetName: address.street.name,
+                                    x: W.model.houseNumbers.objects[key].numbers[i].geometry.x,
+                                    y: W.model.houseNumbers.objects[key].numbers[i].geometry.y,
+                                    streetName: address.attributes.street.name,
                                     houseNumber: number,
-                                    cityName: address.city.attributes.name
+                                    cityName: address.attributes.city.attributes.name
                                 }, true);
                         }
 
@@ -649,20 +646,20 @@ function startAltAddress()
         {
             var haveChanges = false;
             hasPOI = true;
-            if((venue.getAddress().attributes.street.name != streetName && streetName.indexOf(" ") == -1) || address.city.attributes.name.indexOf(cityName) != -1)
+            if((venue.getAddress().attributes.street.name != streetName && streetName.indexOf(" ") == -1) || address.attributes.city.attributes.name.indexOf(cityName) != -1)
             {
                 var newAddressAtts = {
                     streetName: streetName,
                     emptyStreet: false,
-                    cityName: (address.city.attributes.name.indexOf(cityName) != -1) ? address.city.attributes.name : cityName,
+                    cityName: (address.attributes.city.attributes.name.indexOf(cityName) != -1) ? address.attributes.city.attributes.name : cityName,
                     emptyCity: false,
                     stateID: address.state.id,
-                    countryID: address.country.id
+                    countryID: address.attributes.country.id
                 };
-                Waze.model.actionManager.add(new wazeActionUpdateFeatureAddress(venue, newAddressAtts,{streetIDField: 'streetID'}));
+                W.model.actionManager.add(new wazeActionUpdateFeatureAddress(venue, newAddressAtts,{streetIDField: 'streetID'}));
                 haveChanges = true;
 
-                if(WME_ADR_debug && address.city.attributes.name !== newAddressAtts.cityName) console.log("WME-ADR: updateLandmark(): City '"+address.city.attributes.name+"' -> '"+cityName+"'");
+                if(WME_ADR_debug && address.attributes.city.attributes.name !== newAddressAtts.cityName) console.log("WME-ADR: updateLandmark(): City '"+address.attributes.city.attributes.name+"' -> '"+cityName+"'");
                 if(WME_ADR_debug && venue.getAddress().attributes.street.name != streetName) console.log("WME-ADR: updateLandmark(): City '"+venue.getAddress().attributes.street.name+"' -> '"+streetName+"'");
             }
 
@@ -705,7 +702,7 @@ function startAltAddress()
                     haveChanges = true;
                 }
 
-                if((address.country.id == 37 || address.country.id == 186) && number.indexOf("/") != -1)
+                if((address.attributes.country.id == 37 || address.attributes.country.id == 186) && number.indexOf("/") != -1)
                 {
                     if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): has '/' ("+number+")");
                     hasAliasAddress = false;
@@ -747,7 +744,7 @@ function startAltAddress()
             {
                 newAtts.aliases = aliases;
                 newAtts.lockRank = document.getElementById('_lockLevel').selectedIndex;
-                Waze.model.actionManager.add(new wazeActionUpdateObject(venue, newAtts));
+                W.model.actionManager.add(new wazeActionUpdateObject(venue, newAtts));
                 POIs.push(venue);
                 if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): POI updated (hasRH: " + hasRH +  ", hasPOI: " + hasPOI+ ")", venue);
             }
@@ -817,14 +814,14 @@ function startAltAddress()
 
     function getAddressKadastr()
     {
-        if(Waze.selectionManager.selectedItems[0].geometry.components !== undefined)
+        if(W.selectionManager.getSelectedFeatures()[0].geometry.components !== undefined)
         {
             var minX = 10000000,
                 minY = 100000000,
                 maxX = 0,
                 maxY = 0;
 
-            var coordinates = Waze.selectionManager.selectedItems[0].geometry.components[0].components;
+            var coordinates = W.selectionManager.getSelectedFeatures()[0].geometry.components[0].components;
             for(var i = 0; i < coordinates.length; i++)
             {
                 var coordinate = coordinates[i];
@@ -835,7 +832,7 @@ function startAltAddress()
                 if(coordinate.y > maxY) maxY = coordinate.y;
 
             }
-            var ncaURL = 'http://map.nca.by/proxy.php?http://ArcGISServer:8399/arcgis/rest/services/ADDRESS/MapServer/identify?f=json&geometry=' + minX + ',' + minY + ',' + maxX + ',' + maxY + '&tolerance=6&returnGeometry=true&mapExtent={%22xmin%22%3A' + minX + '%2C%22ymin%22%3A' + minY + '%2C%22xmax%22%3A' + maxX + '%2C%22ymax%22%3A' + maxY + '%2C%22spatialReference%22%3A{%22wkid%22%3A102100}}&imageDisplay=820%2C493%2C96&geometryType=esriGeometryEnvelope&sr=102100&layers=visible';
+            var ncaURL = 'http://map.nca.by/proxy.php?http://ArcGISServer:8399/arcgis/rest/services/ADDRESS_NEW/MapServer/identify?f=json&geometry=' + minX + ',' + minY + ',' + maxX + ',' + maxY + '&tolerance=6&returnGeometry=true&mapExtent={%22xmin%22%3A' + minX + '%2C%22ymin%22%3A' + minY + '%2C%22xmax%22%3A' + maxX + '%2C%22ymax%22%3A' + maxY + '%2C%22spatialReference%22%3A{%22wkid%22%3A102100}}&imageDisplay=820%2C493%2C96&geometryType=esriGeometryEnvelope&sr=102100&layers=visible';
 
             $('.toggle-residential').parent().parent().append('<a target="_blank" id="_ncaLink"" href="#">nca.by&nbsp;</a>');
             $('.toggle-residential').parent().parent().append('<input type="text" name="ncajson" id="ncajson" value="" />');
@@ -944,7 +941,7 @@ function startAltAddress()
                     {
                         var newLock = {};
                         newLock.lockRank = document.getElementById('_lockLevel').selectedIndex;
-                        Waze.model.actionManager.add(new wazeActionUpdateObject(venue, newLock));
+                        W.model.actionManager.add(new wazeActionUpdateObject(venue, newLock));
                         if(WME_ADR_debug) console.log("WME-ADR: setAddressFromJSON(): update lock "+venue.attributes.lockRank+" -> "+newLock.lockRank);
                     }
 
