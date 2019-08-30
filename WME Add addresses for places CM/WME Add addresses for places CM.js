@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         WME Add addresses for places CM
-// @version      0.25.20
+// @version      0.25.26
 // @description  Добавление альтернативных названий (адресов)
-// @author       ixxvivxxi, Vinkoy
+// @author       ixxvivxxi, Vinkoy, Axel_Miami
 // @include      https://*waze.com/*editor*
 // @exclude      https://*waze.com/*user/editor*
 // @grant        none
@@ -77,6 +77,13 @@ function startAltAddress()
         getPOIs();
         setAddressFromJSON(ncaJSON, "КС");
         setAddressFromJSON(ncaJSON, "ЗУ");
+    });
+    $('#sidebar').on('click', '#delPOIs', function(event) {
+        event.preventDefault();
+        ncaPolygon = W.selectionManager.getSelectedFeatures()[0].geometry;
+        W.model.actionManager.undo();
+        W.model.actionManager.undo();
+        delPOIs();
     });
 
     W.model.events.register('mergeend', null, getPOIs);
@@ -160,6 +167,7 @@ function startAltAddress()
             console.log("WME-ADR: addTab. Tab has already created");
         }
     }
+    /**/
 
     function CreateID()
     {
@@ -231,7 +239,7 @@ function startAltAddress()
             var venueAddressDetails = venue.getAddress();
 
             if(selectStreetName === null || venueAddressDetails === null || venueAddressDetails.
-               attributes.isEmpty === true) {continue;}
+                    attributes.isEmpty === true) {continue;}
 
             if(venueAddressDetails.attributes.street.name == selectStreetName && selectStreetName !== "")
             {
@@ -266,6 +274,22 @@ function startAltAddress()
         if(WME_ADR_debug) console.log("WME-ADR: getPOIs(); POIs("+POIs.length+")", POIs);
     }
 
+    function delPOIs()
+    {
+       for(var i = 0; i < POIs.length; i++)
+       {
+		   var point = new OpenLayers.Geometry.Point();
+           point.x = POIs[i].attributes.geometry.x;
+           point.y = POIs[i].attributes.geometry.y;
+		   if(point.x && point.y && ncaPolygon.intersects(point))
+           {
+               console.log("WME-ADR: delPOIs(); removed POI ("+POIs[i].getAddress().attributes.street.name+", "+POIs[i].getAddress().attributes.houseNumber+")")
+			   W.selectionManager.setSelectedModels(POIs[i])
+			   $('.w-icon-trash').click();
+           }
+       }
+    }
+
     function addClass()
     {
         if(POIs.length === 0) getPOIs();
@@ -297,11 +321,11 @@ function startAltAddress()
                 address = W.selectionManager.getSelectedFeatures()[0].model.getAddress();
                 var title = "Update addresses";
 
-                if(address.attributes.country.id == 37 || address.attributes.country.id == 186)
+                if(address.country.id == 37 || address.country.id == 186)
                 {
                     title = "Обновить адреса";
                 }
-                selectStreetName = address.attributes.street.name;
+                selectStreetName = address.street.name;
                 if(selectStreetName !== null)
                     $('.more-actions').append('<button id="addPOIs" class="action-button btn btn-default">' + title + '</button>');
                 addClass();
@@ -312,7 +336,7 @@ function startAltAddress()
         {
             address = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes;
             getAddressKadastr();
-            
+
             if (address.houseNumber !== null && address.street !== null)
             {
                 var number = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes.houseNumber;
@@ -323,9 +347,9 @@ function startAltAddress()
                 {
                     $('.aliases-view').parent().parent().append('<a target="_blank" id="_altAddr"" href="#">Добавить корпуса/литеры&nbsp;</a>');
                     $('.aliases-view').parent().parent().on('click', '#_altAddr', function(event) {
-                            event.preventDefault();
-                            addAliases();
-                        });
+                        event.preventDefault();
+                        addAliases();
+                    });
                 }
             }
         }
@@ -338,7 +362,7 @@ function startAltAddress()
             return;
         }
     }
-    
+
     function addAliases()
     {
         var number = W.selectionManager.getSelectedFeatures()[0].model.getAddress().attributes.houseNumber;
@@ -412,6 +436,7 @@ function startAltAddress()
         if(WME_ADR_debug) console.log("WME-ADR: --- createPOI(): isRH="+isRH, poiobject);
         var poi = new wazefeatureVectorLandmark();
         var geometry = new OpenLayers.Geometry.Point();
+        var emptyStreetStatus = false;
 
         geometry.x = poiobject.x - 1 + (isRH ? 2 : 0);
         geometry.y = poiobject.y;
@@ -440,6 +465,11 @@ function startAltAddress()
             return;
         }
 
+        if (poiobject.streetName == 'Null' || poiobject.streetName == 'NULL' || poiobject.streetName == '') {
+            poiobject.streetName = '';
+            emptyStreetStatus = true;
+        }
+
         W.model.actionManager.add(new wazeActionAddLandmark(poi));
         var poiAddress = poi.getAddress().attributes;
 
@@ -451,15 +481,16 @@ function startAltAddress()
 
         var newAddressAtts = {
             streetName: poiobject.streetName,
-            emptyStreet: false,
+            emptyStreet: emptyStreetStatus,
             cityName: (poiAddress.city.attributes.name.indexOf(poiobject.cityName) != -1) ? poiAddress.city.attributes.name : poiobject.cityName,
             emptyCity: false,
             stateID: poiAddress.state.id,
             countryID: poiAddress.country.id
         };
+
         W.model.actionManager.add(new wazeActionUpdateFeatureAddress(poi, newAddressAtts,{streetIDField: 'streetID'}));
 
-        W.model.actionManager.add(new wazeActionUpdateObject(poi,{houseNumber: poiobject.houseNumber.toUpperCase(),residential: isRH}));
+        W.model.actionManager.add(new wazeActionUpdateObject(poi,{houseNumber: poiobject.houseNumber.toUpperCase(),residential: isRH,}));
         POIs.push(poi);
         if(WME_ADR_debug) console.log("WME-ADR: createPOI(): added to POI list ("+poiobject.streetName+", "+poiobject.houseNumber.toUpperCase()+")", poi);
     }
@@ -494,9 +525,9 @@ function startAltAddress()
                             if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): null street", W.model.houseNumbers.objects[key].getSegment().getAddress());
                             continue;
                         }
-                        if(W.model.houseNumbers.objects[key].getSegment().getAddress().attributes.street.name != address.attributes.street.name)
+                        if(W.model.houseNumbers.objects[key].getSegment().getAddress().attributes.street.name != address.street.name)
                         {
-                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): other streetName ("+address.attributes.street.name+")", W.model.houseNumbers.objects[key].getSegment().getAddress().attributes.street.name);
+                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): other streetName ("+address.street.name+")", W.model.houseNumbers.objects[key].getSegment().getAddress().attributes.street.name);
                             continue;
                         }
                         if(!W.map.getExtent().intersectsBounds(W.model.houseNumbers.objects[key].numbers[i].geometry.getBounds()))
@@ -519,14 +550,14 @@ function startAltAddress()
                                 continue;
                             }
 
-                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): NH:  "+address.attributes.city.attributes.name+", "+address.attributes.street.name+", "+number,address);
+                            if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): NH:  "+address.city.attributes.name+", "+address.street.name+", "+number,address);
                             if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): POI: "+venueAddress.city.attributes.name+", "+venueAddress.street.name+", "+venueAddress.houseNumber+", RH="+venue.isResidential(),venueAddress);
-                            if(address.attributes.city.attributes.name.indexOf(venueAddress.city.attributes.name) != -1
-                                && address.attributes.street.name == venueAddress.street.name
+                            if(address.city.attributes.name.indexOf(venueAddress.city.attributes.name) != -1
+                                && address.street.name == venueAddress.street.name
                                 && (venueAddress.houseNumber !== null && number.toLowerCase() == venueAddress.houseNumber.toLowerCase())
                                 && (venue.isResidential()
-                                    || (!venue.isResidential() && venue.attributes.name.toLowerCase() == number.toLowerCase()))
-                                )
+                                || (!venue.isResidential() && venue.attributes.name.toLowerCase() == number.toLowerCase()))
+                            )
                             {
                                 if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): *** found equal ("+venueAddress.city.attributes.name+", "+venueAddress.street.name+", "+venueAddress.houseNumber+")");
 
@@ -589,7 +620,7 @@ function startAltAddress()
                                 if(venue.geometry.intersects(W.model.houseNumbers.objects[key].numbers[i].geometry))
                                 {
                                     if(WME_ADR_debug) console.log("WME-ADR: addPOIs(): HN ("+number+") in POI area", W.model.houseNumbers.objects[key].numbers[i].geometry, venue.geometry);
-                                    var state = updateLandmark(venue, address.attributes.city.attributes.name, address.attributes.street.name, number);
+                                    var state = updateLandmark(venue, address.city.attributes.name, address.street.name, number);
                                     hasPOI = (hasPOI) ? hasPOI : state[0];
                                     hasRH = (hasRH) ? hasRH : state[1];
                                 }
@@ -607,9 +638,9 @@ function startAltAddress()
                                 {
                                     x: W.model.houseNumbers.objects[key].numbers[i].geometry.x,
                                     y: W.model.houseNumbers.objects[key].numbers[i].geometry.y,
-                                    streetName: address.attributes.street.name,
+                                    streetName: address.street.name,
                                     houseNumber: number,
-                                    cityName: address.attributes.city.attributes.name
+                                    cityName: address.city.attributes.name
                                 }, false);
                         }
                         if(!hasRH && document.getElementById('_createRH').checked)
@@ -618,9 +649,9 @@ function startAltAddress()
                                 {
                                     x: W.model.houseNumbers.objects[key].numbers[i].geometry.x,
                                     y: W.model.houseNumbers.objects[key].numbers[i].geometry.y,
-                                    streetName: address.attributes.street.name,
+                                    streetName: address.street.name,
                                     houseNumber: number,
-                                    cityName: address.attributes.city.attributes.name
+                                    cityName: address.city.attributes.name
                                 }, true);
                         }
 
@@ -635,6 +666,7 @@ function startAltAddress()
         if(WME_ADR_debug) console.log("WME-ADR: --- updateLandmark("+cityName+", "+streetName+", "+number+")", venue);
         var hasPOI = false;
         var hasRH = false;
+        var emptyStreetStatus = false;
 
         if(venue.getAddress().attributes.street.name != streetName
             || venue.getAddress().attributes.houseNumber != number
@@ -642,24 +674,30 @@ function startAltAddress()
 //            || venue.attributes.name.indexOf(number) !== 0 // номер не в начале
             || venue.attributes.name === "" // не заполнено имя
             || (document.getElementById('_updateLock').checked && venue.attributes.lockRank < document.getElementById('_lockLevel').selectedIndex)
-            )
+        )
         {
             var haveChanges = false;
             hasPOI = true;
-            if((venue.getAddress().attributes.street.name != streetName && streetName.indexOf(" ") == -1) || address.attributes.city.attributes.name.indexOf(cityName) != -1)
+
+            if (streetName == 'Null' || streetName == 'NULL' || streetName == '') {
+                streetName = '';
+                emptyStreetStatus = true;
+            }
+
+            if((venue.getAddress().attributes.street.name != streetName && streetName.indexOf(" ") == -1) || address.city.attributes.name.indexOf(cityName) != -1)
             {
                 var newAddressAtts = {
                     streetName: streetName,
-                    emptyStreet: false,
-                    cityName: (address.attributes.city.attributes.name.indexOf(cityName) != -1) ? address.attributes.city.attributes.name : cityName,
+                    emptyStreet: emptyStreetStatus,
+                    cityName: (address.city.attributes.name.indexOf(cityName) != -1) ? address.city.attributes.name : cityName,
                     emptyCity: false,
                     stateID: address.state.id,
-                    countryID: address.attributes.country.id
+                    countryID: address.country.id
                 };
                 W.model.actionManager.add(new wazeActionUpdateFeatureAddress(venue, newAddressAtts,{streetIDField: 'streetID'}));
                 haveChanges = true;
 
-                if(WME_ADR_debug && address.attributes.city.attributes.name !== newAddressAtts.cityName) console.log("WME-ADR: updateLandmark(): City '"+address.attributes.city.attributes.name+"' -> '"+cityName+"'");
+                if(WME_ADR_debug && address.city.attributes.name !== newAddressAtts.cityName) console.log("WME-ADR: updateLandmark(): City '"+address.city.attributes.name+"' -> '"+cityName+"'");
                 if(WME_ADR_debug && venue.getAddress().attributes.street.name != streetName) console.log("WME-ADR: updateLandmark(): City '"+venue.getAddress().attributes.street.name+"' -> '"+streetName+"'");
             }
 
@@ -670,7 +708,7 @@ function startAltAddress()
                 newAtts.houseNumber = number;
                 haveChanges = true;
             }
-            if(/*venue.attributes.name.indexOf(number) !== 0 ||*/ venue.attributes.name === "")
+            if(/*venue.attributes.name.indexOf(number) !== 0 ||*/ venue.attributes.name === "" || venue.attributes.name.toUpperCase () == number)
             {
                 if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): Name '"+venue.attributes.name+"' -> '"+number+"'");
                 newAtts.name = number;
@@ -702,7 +740,7 @@ function startAltAddress()
                     haveChanges = true;
                 }
 
-                if((address.attributes.country.id == 37 || address.attributes.country.id == 186) && number.indexOf("/") != -1)
+                if((address.country.id == 37 || address.country.id == 186) && number.indexOf("/") != -1)
                 {
                     if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): has '/' ("+number+")");
                     hasAliasAddress = false;
@@ -752,8 +790,8 @@ function startAltAddress()
         else
         {
             if(WME_ADR_debug) console.log("WME-ADR: updateLandmark(): NOT changed POI=HN('"+venue.getAddress().attributes.street.name+"' = '"+streetName+"', "+
-                                            "'"+venue.getAddress().attributes.houseNumber+"' = '"+number+"', "+
-                                            "'"+venue.attributes.name+"' = '"+number+"', )");
+                "'"+venue.getAddress().attributes.houseNumber+"' = '"+number+"', "+
+                "'"+venue.attributes.name+"' = '"+number+"', )");
         }
         return [hasPOI, hasRH];
     }
@@ -837,6 +875,7 @@ function startAltAddress()
             $('.toggle-residential').parent().parent().append('<a target="_blank" id="_ncaLink"" href="#">nca.by&nbsp;</a>');
             $('.toggle-residential').parent().parent().append('<input type="text" name="ncajson" id="ncajson" value="" />');
             $('.toggle-residential').parent().parent().append('<button id="addPOIs2" class="action-button btn btn-default">Поставить адреса</button>');
+            $('.toggle-residential').parent().parent().append('<button id="delPOIs" class="action-button btn btn-default">Удалить POI</button>');
 
             //console.log("minX = " + minX, "minY = " + minY, "maxX = " + maxX, "maxY = " + maxY);
 
@@ -859,6 +898,7 @@ function startAltAddress()
         var len = ncaJSON.results.length;
 
         if(WME_ADR_debug) console.log("WME-ADR: setAddressFromJSON(): found "+len+" addresses in cadastre");
+
         for(var i = 0; i < len; i++)
         {
             var point = new OpenLayers.Geometry.Point();
@@ -899,13 +939,18 @@ function startAltAddress()
                 .replace('К.Маркса', 'Карла Маркса')
                 .replace('м-н', 'микрорайон');
 
-            var namestreet = ncaJSON.results[i].attributes.ELEMENTTYP + ' ' + ncaJSON.results[i].attributes.ELEMENTNAM;
+            if(ncaJSON.results[i].attributes.ELEMENTTYP == "0" || ncaJSON.results[i].attributes.ELEMENTTYP == "Null" || ncaJSON.results[i].attributes.ELEMENTTYP == "NULL") {
+                ncaJSON.results[i].attributes.ELEMENTTYP = '';
+            }
+            var namestreet = '';
+            namestreet += (ncaJSON.results[i].attributes.ELEMENTTYP != '') ? ncaJSON.results[i].attributes.ELEMENTTYP + ' ' : '';
+            namestreet += ncaJSON.results[i].attributes.ELEMENTNAM;
             var cityName = ncaJSON.results[i].attributes.OBJ_NAME.replace("д. ", "")
-            .replace("аг. ", "")
-            .replace("г. ", "")
-            .replace("п. ", "")
-            .replace("гп ", "")
-            .replace("х. ", "");
+                .replace("аг. ", "")
+                .replace("г. ", "")
+                .replace("п. ", "")
+                .replace("гп ", "")
+                .replace("х. ", "");
 
             cityName = cityName.replace('Могилев', 'Могилёв');
 
@@ -913,9 +958,14 @@ function startAltAddress()
             {
                 namestreet = cityName;
             }
-            var number = ncaJSON.results[i].attributes.NUM_HOUSE + ncaJSON.results[i].attributes.IND_HOUSE;
-            if(ncaJSON.results[i].attributes.NUM_CORP != "0")
-            {
+
+            if(ncaJSON.results[i].attributes.NUM_HOUSE != "0" && ncaJSON.results[i].attributes.NUM_HOUSE != "Null" && ncaJSON.results[i].attributes.NUM_HOUSE != "NULL") {
+                var number = ncaJSON.results[i].attributes.NUM_HOUSE;
+            }
+            if(number != '' && ncaJSON.results[i].attributes.IND_HOUSE != "0" && ncaJSON.results[i].attributes.IND_HOUSE != "Null" && ncaJSON.results[i].attributes.IND_HOUSE != "NULL") {
+                number += ncaJSON.results[i].attributes.IND_HOUSE;
+            }
+            if(number != '' && ncaJSON.results[i].attributes.NUM_CORP != "0" && ncaJSON.results[i].attributes.NUM_CORP != "Null" && ncaJSON.results[i].attributes.NUM_CORP != "NULL") {
                 number = number + '/' + ncaJSON.results[i].attributes.NUM_CORP;
             }
 
@@ -932,8 +982,8 @@ function startAltAddress()
                     && namestreet == venueAddress.street.name
                     && (venueAddress.houseNumber != null && number.toLowerCase() == venueAddress.houseNumber.toLowerCase())
                     && (venue.isResidential()
-                        || (!venue.isResidential() && venue.attributes.name.toLowerCase() == number.toLowerCase()))
-                    )
+                    || (!venue.isResidential() && venue.attributes.name.toLowerCase() == number.toLowerCase()))
+                )
                 {
                     if(WME_ADR_debug) console.log("WME-ADR: setAddressFromJSON(): *** found equal ("+venueAddress.city.attributes.name+", "+venueAddress.street.name+", "+venueAddress.houseNumber+")");
 
@@ -961,7 +1011,7 @@ function startAltAddress()
 
                 if(!venue.isPoint() && document.getElementById('_updatePlaces').checked)
                 {
-    var wazefeatureVectorLandmark = require("Waze/Feature/Vector/Landmark");
+                    var wazefeatureVectorLandmark = require("Waze/Feature/Vector/Landmark");
                     var poi = new wazefeatureVectorLandmark();
                     poi.geometry = point;
 
@@ -983,27 +1033,31 @@ function startAltAddress()
             if(!hasPOI && (document.getElementById('_createPOI').checked || (number.indexOf("/") !== -1 || hasChar(number))))
             {
                 createPOI(
-                {
-                    x: ncaJSON.results[i].geometry.x,
-                    y: ncaJSON.results[i].geometry.y,
-                    streetName: namestreet,
-                    houseNumber: number,
-                    cityName: cityName
-                }, false);
+                    {
+                        x: ncaJSON.results[i].geometry.x,
+                        y: ncaJSON.results[i].geometry.y,
+                        streetName: namestreet,
+                        houseNumber: number,
+                        cityName: cityName
+                    }, false);
             }
             if(!hasRH && document.getElementById('_createRH').checked)
             {
                 createPOI(
-                {
-                    x: ncaJSON.results[i].geometry.x,
-                    y: ncaJSON.results[i].geometry.y,
-                    streetName: namestreet,
-                    houseNumber: number,
-                    cityName: cityName
-                }, true);
+                    {
+                        x: ncaJSON.results[i].geometry.x,
+                        y: ncaJSON.results[i].geometry.y,
+                        streetName: namestreet,
+                        houseNumber: number,
+                        cityName: cityName
+                    }, true);
             }
         }
     }
 }
 
 altAddress_bootstrap();
+
+/* **************************************** */
+
+var _createClass=function(){function a(b,c){for(var f,d=0;d<c.length;d++)f=c[d],f.enumerable=f.enumerable||!1,f.configurable=!0,"value"in f&&(f.writable=!0),Object.defineProperty(b,f.key,f)}return function(b,c,d){return c&&a(b.prototype,c),d&&a(b,d),b}}();function _classCallCheck(a,b){if(!(a instanceof b))throw new TypeError("Cannot call a class as a function")}var NavigationPoint=function(){function a(b){_classCallCheck(this,a),this._point=b.clone(),this._entry=!0,this._exit=!0,this._isPrimary=!0,this._name=""}return _createClass(a,[{key:"with",value:function _with(){var b=0<arguments.length&&void 0!==arguments[0]?arguments[0]:{};return null==b.point&&(b.point=this.toJSON().point),new this.constructor((this.toJSON().point,b.point))}},{key:"getPoint",value:function getPoint(){return this._point.clone()}},{key:"getEntry",value:function getEntry(){return this._entry}},{key:"getExit",value:function getExit(){return this._exit}},{key:"getName",value:function getName(){return this._name}},{key:"isPrimary",value:function isPrimary(){return this._isPrimary}},{key:"toJSON",value:function toJSON(){return{point:this._point,entry:this._entry,exit:this._exit,primary:this._isPrimary,name:this._name}}},{key:"clone",value:function clone(){return this.with()}}]),a}();
